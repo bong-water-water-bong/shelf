@@ -34,6 +34,8 @@ public:
     QStringList pinnedLaunchers() const { return m_pinnedLaunchers; }
     void setPinnedLaunchers(const QStringList &launchers);
 
+    Q_INVOKABLE void launch(const QString &command);
+
 Q_SIGNALS:
     void iconSizeChanged();
     void maxZoomChanged();

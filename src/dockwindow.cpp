@@ -10,13 +10,14 @@ void DockWindow::configureLayerShell(QQuickWindow *window, int exclusiveZone)
         return;
     }
 
-    // Dock behavior: bottom edge, top layer, reserve screen space
+    // Anchor to bottom + left + right = spans full width at bottom edge
     layerWindow->setLayer(LayerShellQt::Window::LayerTop);
-    layerWindow->setAnchors(LayerShellQt::Window::AnchorBottom);
+    layerWindow->setAnchors(LayerShellQt::Window::Anchors(
+        LayerShellQt::Window::AnchorBottom
+        | LayerShellQt::Window::AnchorLeft
+        | LayerShellQt::Window::AnchorRight));
     layerWindow->setExclusiveZone(exclusiveZone);
     layerWindow->setKeyboardInteractivity(
         LayerShellQt::Window::KeyboardInteractivityNone);
-
-    // Let the dock size itself — no fixed margins
     layerWindow->setMargins(QMargins(0, 0, 0, 0));
 }

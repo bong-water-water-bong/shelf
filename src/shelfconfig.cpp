@@ -1,5 +1,6 @@
 #include "shelfconfig.h"
 
+#include <QProcess>
 #include <KConfig>
 #include <KConfigGroup>
 #include <KSharedConfig>
@@ -17,10 +18,10 @@ void ShelfConfig::load()
     auto config = KSharedConfig::openConfig(CONFIG_FILE);
     KConfigGroup general = config->group(QStringLiteral("General"));
 
-    m_iconSize = general.readEntry("IconSize", 48);
-    m_maxZoom = general.readEntry("MaxZoom", 1.8);
-    m_zoomRange = general.readEntry("ZoomRange", 150);
-    m_iconSpacing = general.readEntry("IconSpacing", 6);
+    m_iconSize = general.readEntry("IconSize", 40);
+    m_maxZoom = general.readEntry("MaxZoom", 2.2);
+    m_zoomRange = general.readEntry("ZoomRange", 65);
+    m_iconSpacing = general.readEntry("IconSpacing", 10);
     m_pinnedLaunchers = general.readEntry("PinnedLaunchers", QStringList{
         QStringLiteral("applications:org.kde.dolphin.desktop"),
         QStringLiteral("preferred://browser"),
@@ -92,4 +93,12 @@ void ShelfConfig::setPinnedLaunchers(const QStringList &launchers)
         save();
         Q_EMIT pinnedLaunchersChanged();
     }
+}
+
+void ShelfConfig::launch(const QString &command)
+{
+    auto parts = command.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.isEmpty()) return;
+    auto program = parts.takeFirst();
+    QProcess::startDetached(program, parts);
 }
