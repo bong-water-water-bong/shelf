@@ -11,7 +11,8 @@ Window {
     flags: Qt.FramelessWindowHint
     color: "transparent"
     visible: false
-    height: shelfConfig.dockHeight
+    // Extra height so context menu has room above the shelf
+    height: shelfConfig.dockHeight + 250
 
     Timer {
         interval: 100
@@ -263,12 +264,14 @@ Window {
                     // Position above the shelf
                     var globalPos = mapToItem(root.contentItem, cell.width / 2, 0);
                     contextMenu.x = globalPos.x - contextMenu.width / 2;
-                    contextMenu.y = globalPos.y - contextMenu.height - 20;
+                    // Bottom of menu touches top of shelf
+                    var shelfTop = root.height - shelfConfig.dockHeight;
+                    contextMenu.y = shelfTop - contextMenu.height - 60;
                     contextMenu.open();
                 }
             }
 
-            QQC2.ToolTip.visible: containsMouse
+            QQC2.ToolTip.visible: containsMouse && !contextMenu.visible
             QQC2.ToolTip.text: cell.tooltipText
             QQC2.ToolTip.delay: 400
         }
