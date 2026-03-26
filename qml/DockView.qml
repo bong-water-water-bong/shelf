@@ -260,7 +260,11 @@ Window {
                     cell.iconClicked();
                 } else if (mouse.button === Qt.RightButton) {
                     contextMenu.cellName = cell.tooltipText;
-                    contextMenu.popup();
+                    // Position above the shelf
+                    var globalPos = mapToItem(root.contentItem, cell.width / 2, 0);
+                    contextMenu.x = globalPos.x - contextMenu.width / 2;
+                    contextMenu.y = globalPos.y - contextMenu.height - 20;
+                    contextMenu.open();
                 }
             }
 
