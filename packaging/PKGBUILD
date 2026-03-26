@@ -1,0 +1,43 @@
+# Maintainer: bcloud
+pkgname=shelf
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Floating glass dock with parabolic magnification for KDE Plasma 6"
+arch=('x86_64')
+url="https://github.com/bong-water-water-bong/shelf"
+license=('Apache-2.0')
+depends=(
+    'qt6-base'
+    'qt6-declarative'
+    'qt6-wayland'
+    'kf6-kconfig'
+    'kf6-kcrash'
+    'kf6-kglobalaccel'
+    'kf6-kiconthemes'
+    'kf6-kservice'
+    'kf6-kwindowsystem'
+    'kf6-ki18n'
+    'layer-shell-qt'
+    'plasma-workspace'
+    'kirigami'
+)
+makedepends=(
+    'cmake'
+    'extra-cmake-modules'
+    'ninja'
+    'gcc'
+)
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cmake -B build -S "$pkgname-$pkgver" \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}

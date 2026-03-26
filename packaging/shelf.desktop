@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=shelf
+GenericName=Application Dock
+Comment=Floating glass dock with parabolic magnification
+Exec=shelf
+Icon=preferences-system-windows-behavior
+Categories=Utility;
+X-KDE-autostart-phase=2
+X-KDE-autostart-after-phase=1
