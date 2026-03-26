@@ -41,6 +41,7 @@ add_executable(shelf
     src/main.cpp
     src/dockwindow.cpp
     src/dockwindow.h
+    src/parabolic.h
     src/shelfconfig.cpp
     src/shelfconfig.h
     ${SHELF_RESOURCES}

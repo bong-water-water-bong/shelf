@@ -29,117 +29,161 @@ Window {
         launchInPlace: true
     }
 
-    property real mouseXPos: -10000
-    property bool mouseInDock: false
     readonly property int iconSize: shelfConfig.iconSize
     readonly property int cellWidth: iconSize + shelfConfig.iconSpacing
 
-    function calcScale(iconCenterX: real): real {
-        if (!mouseInDock) return 1.0;
-        var distance = Math.abs(mouseXPos - iconCenterX);
-        var spread = shelfConfig.zoomRange;
-        if (distance >= spread) return 1.0;
-        return 1.0 + (shelfConfig.maxZoom - 1.0) * 0.5
-                    * (1.0 + Math.cos(Math.PI * distance / spread));
+    property real mouseLocalX: -10000
+    property bool hovering: false
+    property bool dockVisible: true
+
+    // --- Auto-hide timer: hide after 1.5s of no mouse activity ---
+    Timer {
+        id: hideTimer
+        interval: 1500
+        onTriggered: {
+            if (!root.hovering) {
+                root.dockVisible = false;
+            }
+        }
     }
 
-    // --- Glass shelf background ---
-    Rectangle {
-        id: shelfBg
+    // --- When mouse leaves, start the hide countdown ---
+    onHoveringChanged: {
+        if (hovering) {
+            hideTimer.stop();
+            dockVisible = true;
+        } else {
+            hideTimer.restart();
+        }
+    }
+
+    // --- Dock content container that slides up/down ---
+    Item {
+        id: dockContainer
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 8
-        width: shelfRow.width + 24
-        height: iconSize + 24
-        radius: 18
-        color: Qt.rgba(0.08, 0.08, 0.12, 0.6)
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.12)
+        width: parent.width
+        height: parent.height
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 1
-            height: parent.height * 0.45
-            radius: 17
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.09) }
-                GradientStop { position: 1.0; color: "transparent" }
+        // Slide off bottom when hidden
+        transform: Translate {
+            y: root.dockVisible ? 0 : shelfConfig.dockHeight + 10
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: 300
+                    easing.type: root.dockVisible ? Easing.OutCubic : Easing.InCubic
+                }
             }
         }
 
-        Behavior on width {
-            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+        // Fade out when hidden
+        opacity: root.dockVisible ? 1.0 : 0.0
+        Behavior on opacity {
+            NumberAnimation { duration: 250 }
+        }
+
+        // --- Glass shelf background ---
+        Rectangle {
+            id: shelfBg
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 8
+            width: shelfRow.width + 24
+            height: iconSize + 24
+            radius: 18
+            color: Qt.rgba(0.08, 0.08, 0.12, 0.6)
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.12)
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 1
+                height: parent.height * 0.45
+                radius: 17
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.09) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
+
+            Behavior on width {
+                NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // --- Icon row ---
+        Row {
+            id: shelfRow
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 14
+            spacing: 0
+            z: 10
+
+            ShelfIcon {
+                iconSource: "firefox"
+                tooltipText: "firefox"
+                onIconClicked: shelfConfig.launch("firefox")
+            }
+
+            Repeater {
+                id: runningAppsRepeater
+                model: tasksModel
+                delegate: ShelfIcon {
+                    required property var model
+                    required property int index
+                    iconSource: model.decoration
+                    tooltipText: model.display || ""
+                    visible: {
+                        var name = (model.display || "").toLowerCase();
+                        return name.indexOf("firefox") === -1
+                            && name.indexOf("konsole") === -1
+                            && !model.IsLauncher;
+                    }
+                    showDot: !model.IsLauncher
+                    isActive: model.IsActive
+                    onIconClicked: tasksModel.requestActivate(tasksModel.makeModelIndex(index))
+                }
+            }
+
+            ShelfIcon {
+                iconSource: "start-here-archlinux"
+                tooltipText: "menu"
+                onIconClicked: shelfConfig.launch("plasmawindowed org.kde.plasma.kickoff")
+            }
+
+            ShelfIcon {
+                iconSource: "utilities-terminal"
+                tooltipText: "konsole"
+                onIconClicked: shelfConfig.launch("konsole")
+            }
         }
     }
 
-    // --- Global mouse tracking ---
+    // --- Full-width mouse sensor at the very bottom to bring dock back ---
     MouseArea {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: parent.height
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
 
         onPositionChanged: function(mouse) {
-            root.mouseXPos = mapToItem(shelfRow, mouse.x, mouse.y).x;
-            root.mouseInDock = true;
+            root.mouseLocalX = Math.round(mapToItem(shelfRow, mouse.x, mouse.y).x);
+            root.hovering = true;
         }
 
         onExited: {
-            root.mouseInDock = false;
-            root.mouseXPos = -10000;
+            root.hovering = false;
         }
     }
 
-    // --- Icon row (fixed-width cells, no reflow) ---
-    Row {
-        id: shelfRow
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 14
-        spacing: 0
-        z: 10
-
-        ShelfIcon {
-            iconSource: "firefox"
-            tooltipText: "firefox"
-            onIconClicked: shelfConfig.launch("firefox")
-        }
-
-        Repeater {
-            model: tasksModel
-            delegate: ShelfIcon {
-                required property var model
-                required property int index
-                iconSource: model.decoration
-                tooltipText: model.display || ""
-                visible: {
-                    var name = (model.display || "").toLowerCase();
-                    return name.indexOf("firefox") === -1
-                        && name.indexOf("konsole") === -1
-                        && !model.IsLauncher;
-                }
-                showDot: !model.IsLauncher
-                isActive: model.IsActive
-                onIconClicked: tasksModel.requestActivate(tasksModel.makeModelIndex(index))
-            }
-        }
-
-        ShelfIcon {
-            iconSource: "start-here-archlinux"
-            tooltipText: "menu"
-            onIconClicked: shelfConfig.launch("plasmawindowed org.kde.plasma.kickoff")
-        }
-
-        ShelfIcon {
-            iconSource: "utilities-terminal"
-            tooltipText: "konsole"
-            onIconClicked: shelfConfig.launch("konsole")
-        }
-    }
-
-    // --- Shelf icon: fixed-width cell, icon scales inside without reflowing ---
+    // --- Shelf icon ---
     component ShelfIcon: Item {
         id: cell
 
@@ -149,28 +193,31 @@ Window {
         property bool isActive: false
         signal iconClicked()
 
-        // Fixed cell width — never changes, prevents jitter
         width: cellWidth
         height: iconSize * shelfConfig.maxZoom + 20
 
-        // Scale is based on this cell's fixed center position
-        readonly property real cellCenter: x + cellWidth / 2
-        property real currentScale: root.calcScale(cellCenter)
+        layer.enabled: false
+        readonly property int centerPx: Math.round(x) + Math.round(cellWidth * 0.5)
+        readonly property real dist: Math.abs(root.mouseLocalX - centerPx)
+        readonly property real zoomRange: shelfConfig.zoomRange
+        readonly property real currentScale: {
+            if (!root.hovering || dist >= zoomRange) return 1.0;
+            return 1.0 + (shelfConfig.maxZoom - 1.0) * 0.5
+                       * (1.0 + Math.cos(3.14159265 * dist / zoomRange));
+        }
 
         Kirigami.Icon {
             id: img
             source: cell.iconSource
-            // Only the image scales, not the cell
-            width: iconSize * cell.currentScale
+            width: Math.round(iconSize * cell.currentScale)
             height: width
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: cell.showDot ? 12 : 4
-
-            // Smooth animation — no Behavior, direct binding for zero-lag tracking
+            smooth: true
+            antialiasing: true
         }
 
-        // Bounce on click
         SequentialAnimation {
             id: bounce
             NumberAnimation {
@@ -185,7 +232,6 @@ Window {
             }
         }
 
-        // Running indicator dot
         Rectangle {
             visible: cell.showDot
             anchors.horizontalCenter: parent.horizontalCenter
@@ -199,23 +245,49 @@ Window {
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.LeftButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
 
             onPositionChanged: function(mouse) {
-                root.mouseXPos = mapToItem(shelfRow, mouse.x, mouse.y).x;
-                root.mouseInDock = true;
+                root.mouseLocalX = Math.round(mapToItem(shelfRow, mouse.x, mouse.y).x);
+                root.hovering = true;
             }
 
-            onEntered: root.mouseInDock = true
+            onEntered: root.hovering = true
 
-            onClicked: {
-                bounce.start();
-                cell.iconClicked();
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    bounce.start();
+                    cell.iconClicked();
+                } else if (mouse.button === Qt.RightButton) {
+                    contextMenu.cellName = cell.tooltipText;
+                    contextMenu.popup();
+                }
             }
 
             QQC2.ToolTip.visible: containsMouse
             QQC2.ToolTip.text: cell.tooltipText
             QQC2.ToolTip.delay: 400
+        }
+    }
+
+    // --- Right-click context menu ---
+    QQC2.Menu {
+        id: contextMenu
+        property string cellName: ""
+
+        QQC2.MenuItem {
+            text: "remove from shelf"
+            onTriggered: console.log("Remove: " + contextMenu.cellName)
+        }
+        QQC2.MenuSeparator {}
+        QQC2.MenuItem {
+            text: "add application..."
+            onTriggered: shelfConfig.launch("plasmawindowed org.kde.plasma.kickoff")
+        }
+        QQC2.MenuSeparator {}
+        QQC2.MenuItem {
+            text: "shelf settings"
+            onTriggered: console.log("Settings")
         }
     }
 }

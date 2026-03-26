@@ -9,6 +9,7 @@
 #include <LayerShellQt/Window>
 
 #include "dockwindow.h"
+#include "parabolic.h"
 #include "shelfconfig.h"
 
 int main(int argc, char *argv[])
@@ -28,6 +29,9 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     engine.rootContext()->setContextProperty(QStringLiteral("shelfConfig"), &config);
+
+    DockWindow dockWindow;
+    engine.rootContext()->setContextProperty(QStringLiteral("dockWindow"), &dockWindow);
 
     // Configure Layer Shell on window creation, BEFORE it's shown
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

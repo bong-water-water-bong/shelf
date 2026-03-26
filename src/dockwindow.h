@@ -2,10 +2,13 @@
 
 #include <QQuickWindow>
 
-class DockWindow
+class DockWindow : public QObject
 {
+    Q_OBJECT
 public:
-    /// Configure a QQuickWindow as a Wayland Layer Shell dock surface.
-    /// Anchors to bottom center, reserves exclusive zone, top layer.
+    explicit DockWindow(QObject *parent = nullptr) : QObject(parent) {}
+
     static void configureLayerShell(QQuickWindow *window, int exclusiveZone);
+
+    Q_INVOKABLE static void setExclusiveZone(QQuickWindow *window, int zone);
 };

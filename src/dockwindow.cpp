@@ -10,7 +10,6 @@ void DockWindow::configureLayerShell(QQuickWindow *window, int exclusiveZone)
         return;
     }
 
-    // Anchor to bottom + left + right = spans full width at bottom edge
     layerWindow->setLayer(LayerShellQt::Window::LayerTop);
     layerWindow->setAnchors(LayerShellQt::Window::Anchors(
         LayerShellQt::Window::AnchorBottom
@@ -20,4 +19,12 @@ void DockWindow::configureLayerShell(QQuickWindow *window, int exclusiveZone)
     layerWindow->setKeyboardInteractivity(
         LayerShellQt::Window::KeyboardInteractivityNone);
     layerWindow->setMargins(QMargins(0, 0, 0, 0));
+}
+
+void DockWindow::setExclusiveZone(QQuickWindow *window, int zone)
+{
+    auto *layerWindow = LayerShellQt::Window::get(window);
+    if (layerWindow) {
+        layerWindow->setExclusiveZone(zone);
+    }
 }
